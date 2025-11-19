@@ -9,7 +9,6 @@ import StaffNavbar from '../../components/StaffNavbar';
 
 export default function StaffApp() {
   const { user, role } = useAuth();
-
   if (!user || !role) return <StaffLogin />;
 
   return (
