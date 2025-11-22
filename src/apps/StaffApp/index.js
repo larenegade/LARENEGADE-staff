@@ -25,6 +25,7 @@ export default function StaffApp() {
         <Route path="/client/:id" element={<ClientProfile />} />
         <Route path="/revenue" element={<Revenue />} />
         <Route path="/settings" element={<Settings />} />
+  <Route path="/book-for-client" element={<BookForClient />} />
       </Routes>
     </>
   );
