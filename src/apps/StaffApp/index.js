@@ -1,32 +1,42 @@
-import BookForClient from '../../components/BookForClient';
+// src/apps/StaffApp/index.js — FINAL WORKING VERSION
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import StaffLogin from '../../pages/StaffLogin';
 import AdminDashboard from '../../pages/AdminDashboard';
 import AddService from '../../pages/AddService';
-import Bookings from '../../pages/Bookings';
-import Clients from '../../pages/Clients';
-import ClientProfile from '../../pages/ClientProfile';
-import Revenue from '../../pages/Revenue';
-import Settings from '../../pages/Settings';
+import ClientChat from '../../pages/ClientChat';
+import AIAssistant from '../../pages/AIAssistant';
+import BookForClient from '../../pages/BookForClient';  // ← THIS WAS MISSING
 import StaffNavbar from '../../components/StaffNavbar';
 
-export default function StaffApp() {
+function ProtectedRoute({ children }) {
   const { user, role } = useAuth();
-  if (!user || !role) return <StaffLogin />;
+  if (!user || !['admin', 'employee'].includes(role)) {
+    return <StaffLogin />;
+  }
+  return children;
+}
 
+export default function StaffApp() {
   return (
     <>
       <StaffNavbar />
       <Routes>
-        <Route path="/" element={<AdminDashboard />} />
-        <Route path="/add-service" element={<AddService />} />
-        <Route path="/bookings" element={<Bookings />} />
-        <Route path="/clients" element={<Clients />} />
-        <Route path="/client/:id" element={<ClientProfile />} />
-        <Route path="/revenue" element={<Revenue />} />
-        <Route path="/settings" element={<Settings />} />
-  <Route path="/book-for-client" element={<BookForClient />} />
+        <Route path="/login" element={<StaffLogin />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <Routes>
+                <Route path="/" element={<AdminDashboard />} />
+                <Route path="/add-service" element={<AddService />} />
+                <Route path="/chat" element={<ClientChat />} />
+                <Route path="/ai" element={<AIAssistant />} />
+                <Route path="/book-for-client" element={<BookForClient />} />
+              </Routes>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </>
   );
