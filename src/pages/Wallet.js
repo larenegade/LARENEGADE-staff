@@ -1,49 +1,56 @@
-import { Container, Typography, Table, TableBody, TableCell, TableHead, TableRow, Button } from '@mui/material';
-import { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import { ref, onValue, update } from 'firebase/database';
+import { Container, Typography, Button, TextField, Box } from '@mui/material';
+import { useState } from 'react';
 
 export default function Wallet() {
-  const [wallets, setWallets] = useState({ business: 0, staff: 0, clientTotal: 0 });
-  const [transfer, setTransfer] = useState({ from: 'business', to: 'staff', amount: '' });
+  const [transferAmount, setTransferAmount] = useState('');
 
-  useEffect(() => {
-    onValue(ref(db, 'wallets'), (snap) => setWallets(snap.val() || { business: 0, staff: 0, clientTotal: 0 }));
-  }, []);
+  const transferToBank = async () => {
+    const amount = parseFloat(transferAmount);
+    if (!amount || amount <= 0) return alert('Enter valid amount');
 
-  const doTransfer = () => {
-    update(ref(db, 'wallets'), {
-      [transfer.from]: wallets[transfer.from] - Number(transfer.amount),
-      [transfer.to]: wallets[transfer.to] + Number(transfer.amount),
-      transferLog: { from: transfer.from, to: transfer.to, amount: transfer.amount, date: new Date().toISOString() }
-    });
-    setTransfer({ from: 'business', to: 'staff', amount: '' });
+    try {
+      // Direct Interac e-Transfer via your bank (RBC/TD/Scotia API or Plooto)
+      const response = await fetch('/.netlify/functions/direct-bank-transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          currency: 'CAD',
+          memo: 'Staff payout from LARENEgADE',
+          bankAccount: process.env.STAFF_BANK_ACCOUNT // your bank details in env vars
+        })
+      });
+
+      if (response.ok) {
+        alert(`C$${amount} transferred to your bank via Interac e-Transfer (1-2 business days)`);
+        setTransferAmount('');
+      } else {
+        alert('Transfer failed — check your bank connection');
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
   };
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" sx={{ color: '#C41E3A', mb: 4 }}>Wallets & Transfers</Typography>
-      <Table sx={{ bgcolor: '#222' }}>
-        <TableHead><TableRow><TableCell sx={{ color: '#fff' }}>Wallet</TableCell><TableCell sx={{ color: '#fff' }}>Balance</TableCell></TableRow></TableHead>
-        <TableBody>
-          <TableRow><TableCell sx={{ color: '#fff' }}>Business</TableCell><TableCell sx={{ color: '#fff' }}>C${wallets.business}</TableCell></TableRow>
-          <TableRow><TableCell sx={{ color: '#fff' }}>Staff Payroll</TableCell><TableCell sx={{ color: '#fff' }}>C${wallets.staff}</TableCell></TableRow>
-          <TableRow><TableCell sx={{ color: '#fff' }}>Client Loyalty Total</TableCell><TableCell sx={{ color: '#fff' }}>C${wallets.clientTotal}</TableCell></TableRow>
-        </TableBody>
-      </Table>
-
-      <Box sx={{ mt: 4, p: 3, bgcolor: '#111', borderRadius: 2 }}>
-        <Typography sx={{ color: '#C41E3A', mb: 2 }}>Transfer Funds</Typography>
-        <TextField select label="From" value={transfer.from} onChange={e => setTransfer({ ...transfer, from: e.target.value })} sx={{ mr: 2 }}>
-          <MenuItem value="business">Business Wallet</MenuItem>
-          <MenuItem value="staff">Staff Wallet</MenuItem>
-        </TextField>
-        <TextField select label="To" value={transfer.to} onChange={e => setTransfer({ ...transfer, to: e.target.value })} sx={{ mr: 2 }}>
-          <MenuItem value="staff">Staff Payroll</MenuItem>
-          <MenuItem value="business">Business Wallet</MenuItem>
-        </TextField>
-        <TextField label="Amount" type="number" value={transfer.amount} onChange={e => setTransfer({ ...transfer, amount: e.target.value })} sx={{ mr: 2 }} />
-        <Button variant="contained" onClick={doTransfer} sx={{ bgcolor: '#C41E3A' }}>Transfer</Button>
+      <Typography variant="h4" sx={{ color: '#C41E3A', mb: 4 }}>Staff Wallet</Typography>
+      <Box sx={{ bgcolor: '#111', p: 4, borderRadius: 2, mb: 4 }}>
+        <Typography sx={{ color: '#fff', mb: 3 }}>Transfer Earnings to Bank</Typography>
+        <TextField
+          label="Amount (CAD)"
+          type="number"
+          value={transferAmount}
+          onChange={e => setTransferAmount(e.target.value)}
+          sx={{ mr: 2 }}
+          InputProps={{ style: { backgroundColor: '#222', color: '#fff' } }}
+        />
+        <Button variant="contained" onClick={transferToBank} sx={{ bgcolor: '#4CAF50' }}>
+          Send Interac e-Transfer
+        </Button>
+        <Typography sx={{ mt: 2, color: '#aaa' }}>
+          Funds go directly to your Canadian bank account (no Stripe fees).
+        </Typography>
       </Box>
     </Container>
   );
