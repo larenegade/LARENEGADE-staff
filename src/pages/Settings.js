@@ -1,21 +1,37 @@
-import { Container, Typography, FormControlLabel, Switch, Paper, Button } from '@mui/material';
-import { useState } from 'react';
+import { Container, Typography, TextField, Button, List, ListItem } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { db } from '../firebase';
+import { ref, update, onValue } from 'firebase/database';
 
 export default function Settings() {
-  const [settings, setSettings] = useState({ deposits: true, sms: true, forms: true, loyalty: true });
+  const [blockedEmails, setBlockedEmails] = useState([]);
+  const [newBlock, setNewBlock] = useState({ type: 'email', value: '' });
 
-  const toggle = (key) => setSettings({ ...settings, [key]: !settings[key] });
+  useEffect(() => {
+    onValue(ref(db, 'blockedList/email'), (snap) => {
+      const data = snap.val() || {};
+      setBlockedEmails(Object.keys(data));
+    });
+  }, []);
+
+  const addBlock = () => {
+    update(ref(db, `blockedList/${newBlock.type}/${newBlock.value}`), true);
+    setNewBlock({ type: 'email', value: '' });
+  };
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" sx={{ color: '#C41E3A', mb: 4 }}>Settings</Typography>
-      <Paper sx={{ p: 4, bgcolor: '#111' }}>
-        <FormControlLabel control={<Switch checked={settings.deposits} onChange={() => toggle('deposits')} />} label="Require deposits (20%)" />
-        <FormControlLabel control={<Switch checked={settings.sms} onChange={() => toggle('sms')} />} label="SMS reminders 24h before" />
-        <FormControlLabel control={<Switch checked={settings.forms} onChange={() => toggle('forms')} />} label="Intake forms required" />
-        <FormControlLabel control={<Switch checked={settings.loyalty} onChange={() => toggle('loyalty')} />} label="Loyalty program active" />
-        <Button variant="contained" sx={{ mt: 3, bgcolor: '#C41E3A' }}>Save Settings</Button>
-      </Paper>
+      <Typography variant="h4" sx={{ color: '#C41E3A', mb: 4 }}>Block List</Typography>
+      <TextField select label="Block by" value={newBlock.type} onChange={e => setNewBlock({ ...newBlock, type: e.target.value })} sx={{ mb: 2 }}>
+        <MenuItem value="email">Email</MenuItem>
+        <MenuItem value="phone">Phone</MenuItem>
+        <MenuItem value="name">Full Name</MenuItem>
+      </TextField>
+      <TextField label="Value" fullWidth value={newBlock.value} onChange={e => setNewBlock({ ...newBlock, value: e.target.value })} sx={{ mb: 2 }} />
+      <Button onClick={addBlock} variant="contained" sx={{ bgcolor: '#C41E3A' }}>Add to Block List</Button>
+      <List sx={{ mt: 4 }}>
+        {blockedEmails.map(e => <ListItem key={e} sx={{ bgcolor: '#222' }}>{e} <Button size="small" color="error">Remove</Button></ListItem>)}
+      </List>
     </Container>
   );
 }
