@@ -1,8 +1,7 @@
+# netlify.toml — FINAL WORKING VERSION (staff app)
 [build]
   publish = "build"
   functions = "netlify/functions"
 
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+# Remove the broken redirect — Netlify adds this automatically for functions
+# DO NOT include any [[redirects]] with /.netlify/functions
