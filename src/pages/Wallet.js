@@ -1,4 +1,3 @@
-// src/pages/Wallet.js — FINAL: STRIPE CONNECT PAYOUT (stylist pays fee)
 import { useState, useEffect } from 'react';
 import { Container, Typography, Button, TextField, Box, Alert } from '@mui/material';
 import { db, auth } from '../firebase';
