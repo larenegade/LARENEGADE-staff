@@ -1,55 +1,33 @@
-import { Container, Grid, Paper, Typography, Box } from '@mui/material';
+import { Container, Grid, Paper, Typography } from '@mui/material';
+import BookingCalendar from '../components/BookingCalendar';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { ref, onValue } from 'firebase/database';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ bookings: 0, revenue: 0, clients: 0, today: 0 });
+  const [stats, setStats] = useState({ today: 0, week: 0, revenue: 0, clients: 0 });
 
   useEffect(() => {
     onValue(ref(db, 'bookings'), (snap) => {
-      const data = snap.val() || {};
-      const all = Object.values(data);
-      const revenue = all.reduce((sum, b) => sum + (b.amount || 0), 0);
-      const today = all.filter(b => new Date(b.date).toDateString() === new Date().toDateString()).length;
-      setStats({
-        bookings: all.length,
-        revenue,
-        clients: new Set(all.map(b => b.clientEmail)).size,
-        today
-      });
+      const bookings = Object.values(snap.val() || {});
+      const now = new Date();
+      const today = bookings.filter(b => new Date(b.dateTime).toDateString() === now.toDateString()).length;
+      const week = bookings.filter(b => new Date(b.dateTime) > new Date(now.setDate(now.getDate() - 7)));
+      const revenue = bookings.reduce((sum, b) => sum + b.amount, 0);
+      setStats({ today, week: week.length, revenue, clients: new Set(bookings.map(b => b.clientEmail)).size });
     });
   }, []);
 
   return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" sx={{ color: '#C41E3A', mb: 4 }}>larenegade Dashboard</Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, bgcolor: '#222', color: '#fff' }}>
-            <Typography variant="h6">Today’s Bookings</Typography>
-            <Typography variant="h3">{stats.today}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, bgcolor: '#222', color: '#fff' }}>
-            <Typography variant="h6">Total Bookings</Typography>
-            <Typography variant="h3">{stats.bookings}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, bgcolor: '#222', color: '#fff' }}>
-            <Typography variant="h6">Revenue</Typography>
-            <Typography variant="h3">${stats.revenue}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, bgcolor: '#222', color: '#fff' }}>
-            <Typography variant="h6">Clients</Typography>
-            <Typography variant="h3">{stats.clients}</Typography>
-          </Paper>
-        </Grid>
+    <Container>
+      <Typography variant="h4" sx={{ color: '#C41E3A', mb: 4, fontWeight: 'bold' }}>Dashboard</Typography>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={3}><Paper sx={{ p: 3, bgcolor: '#222', color: '#fff' }}><Typography variant="h6">Today</Typography><Typography variant="h4">{stats.today}</Typography></Paper></Grid>
+        <Grid item xs={3}><Paper sx={{ p: 3, bgcolor: '#222', color: '#fff' }}><Typography variant="h6">This Week</Typography><Typography variant="h4">{stats.week}</Typography></Paper></Grid>
+        <Grid item xs={3}><Paper sx={{ p: 3, bgcolor: '#222', color: '#fff' }}><Typography variant="h6">Revenue</Typography><Typography variant="h4">${stats.revenue}</Typography></Paper></Grid>
+        <Grid item xs={3}><Paper sx={{ p: 3, bgcolor: '#222', color: '#fff' }}><Typography variant="h6">Clients</Typography><Typography variant="h4">{stats.clients}</Typography></Paper></Grid>
       </Grid>
+      <Paper sx={{ p: 3 }}><BookingCalendar /></Paper>
     </Container>
   );
 }
