@@ -134,7 +134,10 @@ export default function BookForClient() {
           onChange={e => setForm({ ...form, deposit: e.target.value })}
           sx={{ mb: 3 }}
         />
-
+<Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+  Announce to client 50% non-refundable retainer charged on booking, unless valid credit card is on file.<br />
+  Late cancel/no-show → remaining 50% auto-charged + account suspension.
+</Alert>
         <TextField
           label="Staff Notes (internal only)"
           multiline rows={3}
