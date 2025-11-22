@@ -1,56 +1,83 @@
-import { Container, Typography, Button, TextField, Box } from '@mui/material';
-import { useState } from 'react';
+// src/pages/Wallet.js — FINAL: STRIPE CONNECT PAYOUT (stylist pays fee)
+import { useState, useEffect } from 'react';
+import { Container, Typography, Button, TextField, Box, Alert } from '@mui/material';
+import { db, auth } from '../firebase';
+import { ref, onValue } from 'firebase/database';
 
 export default function Wallet() {
-  const [transferAmount, setTransferAmount] = useState('');
+  const [balance, setBalance] = useState(0);
+  const [amount, setAmount] = useState('');
 
-  const transferToBank = async () => {
-    const amount = parseFloat(transferAmount);
-    if (!amount || amount <= 0) return alert('Enter valid amount');
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      onValue(ref(db, `staffWallets/${uid}`), (snap) => {
+        setBalance(snap.val() || 0);
+      });
+    }
+  }, []);
+
+  const payoutToBank = async () => {
+    const requested = parseFloat(amount);
+    if (!requested || requested <= 0) return alert('Enter amount');
+
+    const stripeFee = requested * 0.01 + 0.25;  // 1% + $0.25
+    const totalDeduction = requested + stripeFee;
+
+    if (totalDeduction > balance) {
+      return alert(`Not enough balance. You need an extra C$${stripeFee.toFixed(2)} for the payout fee.`);
+    }
 
     try {
-      // Direct Interac e-Transfer via your bank (RBC/TD/Scotia API or Plooto)
-      const response = await fetch('/.netlify/functions/direct-bank-transfer', {
+      const res = await fetch('/.netlify/functions/stripe-payout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          currency: 'CAD',
-          memo: 'Staff payout from LARENEgADE',
-          bankAccount: process.env.STAFF_BANK_ACCOUNT // your bank details in env vars
-        })
+        body: JSON.stringify({ amount: requested * 100 }) // in cents
       });
 
-      if (response.ok) {
-        alert(`C$${amount} transferred to your bank via Interac e-Transfer (1-2 business days)`);
-        setTransferAmount('');
+      if (res.ok) {
+        alert(`C$${requested} paid out instantly to your bank!\nC$${stripeFee.toFixed(2)} fee deducted from your wallet.`);
+        setAmount('');
       } else {
-        alert('Transfer failed — check your bank connection');
+        alert('Payout failed');
       }
-    } catch (error) {
-      alert('Error: ' + error.message);
+    } catch (e) {
+      alert('Error');
     }
   };
 
   return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" sx={{ color: '#C41E3A', mb: 4 }}>Staff Wallet</Typography>
-      <Box sx={{ bgcolor: '#111', p: 4, borderRadius: 2, mb: 4 }}>
-        <Typography sx={{ color: '#fff', mb: 3 }}>Transfer Earnings to Bank</Typography>
-        <TextField
-          label="Amount (CAD)"
-          type="number"
-          value={transferAmount}
-          onChange={e => setTransferAmount(e.target.value)}
-          sx={{ mr: 2 }}
-          InputProps={{ style: { backgroundColor: '#222', color: '#fff' } }}
-        />
-        <Button variant="contained" onClick={transferToBank} sx={{ bgcolor: '#4CAF50' }}>
-          Send Interac e-Transfer
-        </Button>
-        <Typography sx={{ mt: 2, color: '#aaa' }}>
-          Funds go directly to your Canadian bank account (no Stripe fees).
+    <Container sx={{ mt: 8, textAlign: 'center' }}>
+      <Typography variant="h4" sx={{ color: '#C41E3A', mb: 4 }}>
+        Stylist Wallet
+      </Typography>
+
+      <Box sx={{ bgcolor: '#111', p: 5, borderRadius: 3, mb: 4 }}>
+        <Typography sx={{ color: '#fff', fontSize: '2.5rem', mb: 3 }}>
+          C${balance.toFixed(2)}
         </Typography>
+
+        <TextField
+          label="Amount to withdraw"
+          value={amount}
+          onChange={e => setAmount(e.target.value)}
+          type="number"
+          fullWidth
+          sx={{ mb: 3 }}
+        />
+
+        <Button
+          variant="contained"
+          size="large"
+          onClick={payoutToBank}
+          sx={{ bgcolor: '#C41E3A', py: 2, px: 6 }}
+        >
+          Withdraw to Bank (you pay ~1% + $0.25 fee)
+        </Button>
+
+        <Alert severity="info" sx={{ mt: 3 }}>
+          Instant payout via Stripe · Arrives in your bank in 1–2 business days<br />
+          The small fee is deducted from your wallet (you pay it, not the salon)
+        </Alert>
       </Box>
     </Container>
   );
