@@ -1,0 +1,5 @@
+# Force HTTPS on the staff site
+/*    https://larenegadestaff.netlify.app/:splat    301!
+
+# React SPA – fixes refresh on staff dashboard, add-service, etc.
+/*    /index.html   200
