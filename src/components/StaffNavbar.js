@@ -20,6 +20,9 @@ export default function StaffNavbar() {
           <Button color="inherit" onClick={() => navigate('/clients')}>Clients</Button>
           <Button color="inherit" onClick={() => navigate('/revenue')}>Revenue</Button>
           <Button color="inherit" onClick={logout}>Logout</Button>
+            <Button color="inherit" onClick={() => navigate('/book-for-client')}>
+  Book For Client
+</Button>
         </Box>
       </Toolbar>
     </AppBar>
