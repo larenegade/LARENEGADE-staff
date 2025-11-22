@@ -1,3 +1,4 @@
+import BookForClient from '../../components/BookForClient';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import StaffLogin from '../../pages/StaffLogin';
